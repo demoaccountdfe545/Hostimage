@@ -13,3 +13,9 @@
 
 @media(max-width:850px){.admin-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.admin-header{padding:0 16px}.admin-header>div>span{display:none}.admin-main{padding:16px}.form-grid{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}.check-row{flex-direction:column;gap:10px}.request-row{grid-template-columns:1fr}.admin-login{padding:27px 22px}.admin-tabs{padding:0 7px}.admin-tabs button{padding:0 10px}}
+
+/* Public listing form */
+.modal{max-height:calc(100vh - 40px);overflow-y:auto}
+.modal select{display:block;width:100%;height:44px;border:1px solid #ccd8e3;border-radius:6px;margin-top:6px;padding:0 12px;background:white}
+.modal-field-row{display:grid;grid-template-columns:1fr 110px;gap:10px}
+@media(max-width:700px){.modal-field-row{grid-template-columns:1fr}}
