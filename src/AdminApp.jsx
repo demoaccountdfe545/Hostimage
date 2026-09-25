@@ -167,7 +167,7 @@ function Requests() {
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
-    const { data, error: loadError } = await supabase.from('listing_requests').select('*').order('created_at', { ascending: false });
+    const { data, error: loadError } = await supabase.from('listing_requests').select('*, categories(name)').order('created_at', { ascending: false });
     setLoading(false);
     if (loadError) return setError(loadError.message);
     setRequests(data || []);
@@ -184,7 +184,7 @@ function Requests() {
     <div className="list-heading"><div><p className="eyebrow">INBOX</p><h2>Listing requests <span>{requests.length}</span></h2></div><button className="icon-button" onClick={load} aria-label="Refresh"><RefreshCw/></button></div>
     {error && <p className="form-error">{error}</p>}
     {loading ? <div className="admin-empty"><LoaderCircle className="spin"/> Loading requests…</div> : requests.length === 0 ? <div className="admin-empty"><Inbox/><b>No requests yet</b><span>New submissions from the public site will appear here.</span></div> : requests.map(item => <article className="request-row" key={item.id}>
-      <div><h3>{item.business_name}</h3><p>{item.owner_name} · <a href={`mailto:${item.email}`}>{item.email}</a>{item.phone ? ` · ${item.phone}` : ''}</p>{item.message && <blockquote>{item.message}</blockquote>}<time>{new Date(item.created_at).toLocaleString()}</time></div>
+      <div><h3>{item.business_name}</h3><p>{item.categories?.name || 'Community'} · {[item.address, item.city, item.state].filter(Boolean).join(', ') || 'Address not provided'}</p><p>{item.owner_name} · <a href={`mailto:${item.email}`}>{item.email}</a>{item.phone ? ` · ${item.phone}` : ''}</p>{item.website && <p><a href={/^https?:\/\//i.test(item.website) ? item.website : `https://${item.website}`} target="_blank" rel="noreferrer">{item.website}</a></p>}{item.message && <blockquote>{item.message}</blockquote>}<time>{new Date(item.created_at).toLocaleString()}</time></div>
       <select value={item.status} onChange={e => updateStatus(item.id, e.target.value)}><option value="pending">Pending</option><option value="contacted">Contacted</option><option value="approved">Approved</option><option value="rejected">Rejected</option></select>
     </article>)}
   </section>;
