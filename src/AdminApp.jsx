@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, BriefcaseBusiness, ImageUp, Inbox, LoaderCircle,
-  LogOut, Pencil, RefreshCw, Save, Trash2, X
+  LogOut, Palette, Pencil, RefreshCw, Save, Trash2, X
 } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './lib/supabase';
 
@@ -9,6 +9,16 @@ const emptyBusiness = {
   id: '', name: '', category_id: '', tagline: '', description: '', address: '',
   city: 'Monroe', state: 'LA', phone: '', website: '', services: '', close_time: '',
   image_url: '', is_featured: false, is_local_presence: false, status: 'pending'
+};
+
+const defaultSettings = {
+  id: 1, site_name: 'LOCAL LOOP', brand_subtitle: '106.7 FM · Community Directory', logo_url: '',
+  hero_title: 'Discover Local. Support Local.',
+  hero_description: 'Find businesses, services, restaurants and community resources serving Monroe and the surrounding community.',
+  hero_badge: 'Stronger Together', location: 'Monroe, LA',
+  visibility_title: 'Get the Visibility Your Business Deserves',
+  visibility_subtitle: 'Three ways to be part of something bigger.',
+  footer_title: 'Local businesses build stronger communities.'
 };
 
 function slugify(value) {
@@ -20,6 +30,7 @@ function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
 
   async function submit(event) {
     event.preventDefault();
@@ -28,6 +39,16 @@ function Login({ onLogin }) {
     setBusy(false);
     if (authError) return setError(authError.message);
     onLogin(data.session);
+  }
+
+  async function forgotPassword() {
+    if (!email.trim()) return setError('Enter your admin email address first.');
+    setBusy(true); setError(''); setNotice('');
+    const redirectTo = `${window.location.origin}${window.location.pathname}?recovery=1`;
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+    setBusy(false);
+    if (resetError) return setError(resetError.message);
+    setNotice('Password reset email sent. Check your inbox and spam folder.');
   }
 
   return <main className="admin-login-wrap">
@@ -40,10 +61,42 @@ function Login({ onLogin }) {
         <label>Email address<input type="email" required value={email} onChange={e => setEmail(e.target.value)} autoComplete="email"/></label>
         <label>Password<input type="password" required value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password"/></label>
         {error && <p className="form-error">{error}</p>}
+        {notice && <p className="form-success">{notice}</p>}
         <button className="primary admin-submit" disabled={busy}>{busy ? <LoaderCircle className="spin"/> : 'Sign in'}</button>
+        <button className="forgot-button" type="button" disabled={busy} onClick={forgotPassword}>Forgot password?</button>
       </form>
     </section>
   </main>;
+}
+
+function PasswordRecovery({ onDone }) {
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit(event) {
+    event.preventDefault(); setError('');
+    if (password.length < 8) return setError('Use at least 8 characters.');
+    if (password !== confirmPassword) return setError('The passwords do not match.');
+    setBusy(true);
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+    setBusy(false);
+    if (updateError) return setError(updateError.message);
+    window.history.replaceState({}, '', `${window.location.pathname}#/admin`);
+    onDone();
+  }
+
+  return <main className="admin-login-wrap"><section className="admin-login">
+    <span className="admin-mark"><Save/></span><p className="eyebrow">ACCOUNT RECOVERY</p><h1>Create new password</h1>
+    <p>Choose a new password for your directory admin account.</p>
+    <form onSubmit={submit}>
+      <label>New password<input type="password" required minLength="8" value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password"/></label>
+      <label>Confirm new password<input type="password" required minLength="8" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} autoComplete="new-password"/></label>
+      {error && <p className="form-error">{error}</p>}
+      <button className="primary admin-submit" disabled={busy}>{busy ? <LoaderCircle className="spin"/> : 'Save new password'}</button>
+    </form>
+  </section></main>;
 }
 
 function BusinessForm({ categories, editing, onSaved, onCancel }) {
@@ -190,11 +243,81 @@ function Requests() {
   </section>;
 }
 
+function Branding() {
+  const [form, setForm] = useState(defaultSettings);
+  const [logo, setLogo] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    supabase.from('site_settings').select('*').eq('id', 1).maybeSingle().then(({ data, error: loadError }) => {
+      if (!active) return;
+      if (loadError) setError(loadError.message);
+      else if (data) setForm(current => ({ ...current, ...data }));
+      setLoading(false);
+    });
+    return () => { active = false; };
+  }, []);
+
+  const set = (key, value) => setForm(current => ({ ...current, [key]: value }));
+
+  async function uploadLogo() {
+    if (!logo) return form.logo_url || null;
+    const extension = logo.name.split('.').pop()?.toLowerCase() || 'png';
+    const path = `branding/logo-${crypto.randomUUID()}.${extension}`;
+    const { error: uploadError } = await supabase.storage.from('business-images').upload(path, logo, {
+      cacheControl: '3600', upsert: false, contentType: logo.type
+    });
+    if (uploadError) throw uploadError;
+    return supabase.storage.from('business-images').getPublicUrl(path).data.publicUrl;
+  }
+
+  async function submit(event) {
+    event.preventDefault(); setBusy(true); setError(''); setSaved(false);
+    try {
+      const logoUrl = await uploadLogo();
+      const payload = { ...form, id: 1, logo_url: logoUrl, updated_at: new Date().toISOString() };
+      const { error: saveError } = await supabase.from('site_settings').upsert(payload, { onConflict: 'id' });
+      if (saveError) throw saveError;
+      setForm(payload); setLogo(null); setSaved(true);
+    } catch (saveError) {
+      setError(saveError.message || 'Could not save branding settings.');
+    } finally { setBusy(false); }
+  }
+
+  if (loading) return <section className="admin-list requests-list"><div className="admin-empty"><LoaderCircle className="spin"/> Loading branding…</div></section>;
+
+  return <form className="admin-form branding-form" onSubmit={submit}>
+    <div className="admin-form-title"><div><p className="eyebrow">SITE SETTINGS</p><h2>Branding</h2></div></div>
+    <p className="admin-help">Update the logo and text used in the public website header, visibility section and footer.</p>
+    <div className="branding-preview">{form.logo_url ? <img src={form.logo_url} alt="Current logo"/> : <b>{form.site_name}</b>}</div>
+    <div className="form-grid">
+      <label className="upload-label wide"><ImageUp/> Upload logo<input type="file" accept="image/jpeg,image/png,image/webp,image/svg+xml" onChange={e => setLogo(e.target.files?.[0] || null)}/><span>{logo?.name || (form.logo_url ? 'Current logo saved — choose a file to replace it' : 'PNG, JPG, WebP or SVG')}</span></label>
+      <label>Business / site name<input required value={form.site_name} onChange={e => set('site_name', e.target.value)}/></label>
+      <label>Brand subtitle<input value={form.brand_subtitle} onChange={e => set('brand_subtitle', e.target.value)}/></label>
+      <label className="wide">Main heading<input required value={form.hero_title} onChange={e => set('hero_title', e.target.value)}/></label>
+      <label className="wide">Header description<textarea rows="3" value={form.hero_description} onChange={e => set('hero_description', e.target.value)}/></label>
+      <label>Header badge text<input value={form.hero_badge} onChange={e => set('hero_badge', e.target.value)}/></label>
+      <label>Directory location<input value={form.location} onChange={e => set('location', e.target.value)}/></label>
+      <label className="wide">Visibility section heading<input value={form.visibility_title} onChange={e => set('visibility_title', e.target.value)}/></label>
+      <label className="wide">Visibility section subtitle<input value={form.visibility_subtitle} onChange={e => set('visibility_subtitle', e.target.value)}/></label>
+      <label className="wide">Footer heading<input value={form.footer_title} onChange={e => set('footer_title', e.target.value)}/></label>
+    </div>
+    {error && <p className="form-error">{error}</p>}
+    {saved && <p className="form-success">Branding saved. Refresh the public website to see the changes.</p>}
+    <button className="primary save-button" disabled={busy}>{busy ? <LoaderCircle className="spin"/> : <Save/>}Save branding</button>
+  </form>;
+}
+
 export default function AdminApp() {
   const [session, setSession] = useState(null);
   const [checking, setChecking] = useState(true);
   const [categories, setCategories] = useState([]);
   const [tab, setTab] = useState('businesses');
+  const [recovering, setRecovering] = useState(() => new URLSearchParams(window.location.search).get('recovery') === '1');
 
   useEffect(() => {
     if (!supabase) { setChecking(false); return; }
@@ -208,15 +331,20 @@ export default function AdminApp() {
     supabase.from('categories').select('*').order('sort_order').then(({ data }) => setCategories(data || []));
   }, [session]);
 
-  const content = useMemo(() => tab === 'businesses' ? <Businesses categories={categories}/> : <Requests/>, [tab, categories]);
+  const content = useMemo(() => {
+    if (tab === 'businesses') return <Businesses categories={categories}/>;
+    if (tab === 'requests') return <Requests/>;
+    return <Branding/>;
+  }, [tab, categories]);
 
   if (!isSupabaseConfigured) return <main className="setup-screen"><BriefcaseBusiness/><h1>Connect Supabase first</h1><p>Add your Supabase URL and publishable key to the environment variables, then rebuild the site.</p><a href="./">Back to directory</a></main>;
   if (checking) return <main className="setup-screen"><LoaderCircle className="spin"/><p>Checking your session…</p></main>;
+  if (session && recovering) return <PasswordRecovery onDone={() => setRecovering(false)}/>;
   if (!session) return <Login onLogin={setSession}/>;
 
   return <div className="admin-shell">
     <header className="admin-header"><a className="admin-brand" href="./"><b>LOCAL</b><span>LOOP</span><small>Directory Admin</small></a><div><span>{session.user.email}</span><button onClick={() => supabase.auth.signOut()}><LogOut/> Sign out</button></div></header>
-    <nav className="admin-tabs"><button className={tab === 'businesses' ? 'active' : ''} onClick={() => setTab('businesses')}><BriefcaseBusiness/> Businesses</button><button className={tab === 'requests' ? 'active' : ''} onClick={() => setTab('requests')}><Inbox/> Listing requests</button></nav>
+    <nav className="admin-tabs"><button className={tab === 'businesses' ? 'active' : ''} onClick={() => setTab('businesses')}><BriefcaseBusiness/> Businesses</button><button className={tab === 'requests' ? 'active' : ''} onClick={() => setTab('requests')}><Inbox/> Listing requests</button><button className={tab === 'branding' ? 'active' : ''} onClick={() => setTab('branding')}><Palette/> Branding</button></nav>
     <main className="admin-main">{content}</main>
   </div>;
 }
