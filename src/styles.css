@@ -19,3 +19,44 @@
 .modal select{display:block;width:100%;height:44px;border:1px solid #ccd8e3;border-radius:6px;margin-top:6px;padding:0 12px;background:white}
 .modal-field-row{display:grid;grid-template-columns:1fr 110px;gap:10px}
 @media(max-width:700px){.modal-field-row{grid-template-columns:1fr}}
+
+/* Editable branding */
+.brand.has-logo{display:grid;grid-template-columns:1fr;letter-spacing:0;align-items:start}
+.brand.has-logo img{display:block;max-width:290px;max-height:92px;object-fit:contain;object-position:left center}
+.brand.has-logo small{grid-column:1;margin-top:8px}
+.footer-bottom .brand.has-logo img{max-width:190px;max-height:55px;filter:brightness(0) invert(1)}
+.together{white-space:pre-line}
+
+/* Visibility options above footer */
+.visibility-options{padding:46px max(34px,calc((100vw - 1312px)/2));background:linear-gradient(180deg,#f7fbff,#fff)}
+.visibility-heading{text-align:center;margin-bottom:24px}
+.visibility-heading h2{font:700 34px/1.1 'Playfair Display',serif;color:var(--navy);margin:0 0 6px}
+.visibility-heading p{margin:0;color:#314a68;font-size:17px}
+.visibility-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.visibility-card{min-height:315px;border:1px solid #d6dee6;border-radius:10px;padding:22px;display:grid;grid-template-columns:44px 1fr;column-gap:12px;align-content:start;box-shadow:0 8px 28px rgba(7,42,84,.06)}
+.visibility-card>svg{width:42px;height:42px;padding:8px;border-radius:9px}
+.visibility-card h3{font:800 20px 'DM Sans';margin:1px 0 3px;color:var(--navy)}
+.visibility-card b{font-size:13px;font-weight:600}
+.visibility-card ul{grid-column:1/3;margin:23px 0 17px;padding-left:24px;font-size:13px;line-height:1.7}
+.visibility-card em{grid-column:1/3;font-size:12px;margin-top:auto}
+.visibility-card button{grid-column:1/3;height:44px;margin-top:16px;border:1px solid var(--navy);border-radius:6px;font-weight:800;color:var(--navy);background:#fff}
+.visibility-card.found{background:linear-gradient(145deg,#eef1f4,#fff)}
+.visibility-card.found>svg{background:#d8dde2;color:#687684}
+.visibility-card.seen{background:linear-gradient(145deg,#dff1ff,#fff);border-color:#acd8f7}
+.visibility-card.seen>svg{background:#72b9f0;color:#fff}
+.visibility-card.seen button{background:linear-gradient(135deg,#0876ca,#03478e);border:0;color:#fff}
+.visibility-card.standout{background:linear-gradient(145deg,#fff0ae,#fff);border-color:#f4cf52}
+.visibility-card.standout>svg{background:#f8c83e;color:#755700}
+.visibility-card.standout button{background:var(--gold);border:0;color:#2b2200}
+
+/* Branding admin */
+.branding-form{max-width:880px;margin:auto}
+.admin-help{color:var(--muted);font-size:13px;margin:-8px 0 20px}
+.branding-preview{min-height:115px;border:1px dashed #a9bac9;border-radius:9px;background:#f6f9fb;display:grid;place-items:center;margin-bottom:18px;padding:16px}
+.branding-preview img{max-width:330px;max-height:90px;object-fit:contain}
+.branding-preview b{font:800 36px 'DM Sans';color:var(--navy)}
+.form-success{color:#077842;background:#e5f7ed;border:1px solid #b6e7cb;border-radius:6px;padding:10px 12px;font-size:12px}
+.forgot-button{color:var(--blue);font-size:12px;font-weight:700;padding:5px;text-align:center}.forgot-button:disabled{opacity:.6}
+
+@media(max-width:850px){.visibility-grid{grid-template-columns:1fr}.visibility-card{min-height:270px}}
+@media(max-width:700px){.brand.has-logo img{max-width:230px;max-height:75px}.visibility-options{padding:36px 20px}.visibility-heading h2{font-size:28px}.visibility-heading p{font-size:14px}.visibility-card{min-height:0}.admin-tabs{overflow-x:auto}.admin-tabs button{white-space:nowrap}}
